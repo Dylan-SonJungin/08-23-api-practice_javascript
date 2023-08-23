@@ -31,14 +31,29 @@ exports.findRestaurantByCode = (resNo) => {
 }
 
 exports.registRestaurant = (restaurant) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         const connection = getConnection();
 
-        const result = RestaurantRepo.registRestaurant(connection, restaurant);
+        connection.beginTransaction();
 
-        connection.end();
+        try{
+            const result = await RestaurantRepo.registRestaurant(connection, restaurant);
 
-        resolve(result);
+            const insertedRes = await RestaurantRepo.findRestaurantByCode(connection, result.insertId);
+
+            connection.commit();
+
+            resolve(insertedRes);
+        } catch(error) {
+            connection.rollback();
+            console.log("rollback successful");
+
+            reject(error);
+        } finally {
+            connection.end();
+            console.log('connection ended');
+        }
+
     });
 }
 
